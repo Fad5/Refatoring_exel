@@ -1,8 +1,10 @@
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
+from openpyxl.styles import NamedStyle
 import os
 from openpyxl.utils import column_index_from_string
 import re
+from openpyxl.styles import Font
 
 
 def cut_and_paste_excel(file_path, src_range, dst_cell):
@@ -31,11 +33,7 @@ def cut_and_paste_excel(file_path, src_range, dst_cell):
 
             dst_cell.value = src_cell.value  # Копируем данные
 
-            # Копируем стиль (опционально)
-            if src_cell.has_style:
-                dst_cell._style = src_cell._style
-
-                # Очищаем исходные ячейки
+            # Очищаем исходные ячейки
     for r in range(rows):
         for c in range(cols):
             ws.cell(row=src_start_row + r, column=src_start_col + c).value = None
@@ -85,15 +83,6 @@ def clear_row(file_path, sheet_name, row_num):
 
 
 def clear_cells_in_range(file_path, sheet_name, cell_range):
-    """
-    Очищает значения ячеек в заданном диапазоне на указанном листе Excel.
-
-    :param file_path: str - Путь к файлу Excel.
-    :param sheet_name: str - Имя листа в файле Excel.
-    :param cell_range: str - Диапазон ячеек в формате "A1:B10".
-
-    :return: None
-    """
     # Загружаем рабочую книгу
     workbook = load_workbook(file_path)
 
@@ -113,22 +102,13 @@ def clear_cells_in_range(file_path, sheet_name, cell_range):
 
 
 def delete_row(file_path, sheet_name, row_number):
-    """
-    Удаляет указанную строку на листе Excel.
-
-    :param file_path: str - Путь к файлу Excel.
-    :param sheet_name: str - Имя листа, в котором будет удалена строка.
-    :param row_number: int - Номер строки, которую нужно удалить.
-
-    :return: None
-    """
     # Загружаем рабочую книгу
     workbook = load_workbook(file_path)
 
     # Получаем лист по имени
     sheet = workbook[sheet_name]
 
-    # Удаляем строку (второй аргумент указывает количество удаляемых строк, по умолчанию 1)
+    # Удаляем строку (второй аргумент указывает на количество строк для удаления, по умолчанию 1)
     sheet.delete_rows(row_number)
 
     # Сохраняем изменения
@@ -193,68 +173,89 @@ def get_cell_value(file_path, cell):
     return value
 
 
+def change_cell_format(file_path, cell_ranges):
+    # Загружаем рабочую книгу и выбираем лист
+    wb = load_workbook(file_path)
+    ws = wb.active
+    wb.guess_types = True
+    numberStyle = NamedStyle(name='numberStyle', number_format='0.00')
+
+    for cell_range in cell_ranges:
+        # Проходим по указанным диапазонам ячеек
+        for row in ws[cell_range]:
+            for i in row:
+                i.style = numberStyle
+                i.font = Font(name='Times New Roman', size=9)
+
+        # Сохраняем изменения в файле
+    wb.save(file_path)
+
+
 def is_refactoring(name_file):
     result = (get_cell_value(name_file, 'AD4'))
     return result
 
 
+def font(file_path, cell_range, size=9):
+    # Загружаем рабочую книгу и выбираем лист
+    wb = load_workbook(file_path)
+    ws = wb.active
+
+    # Проходим по указанным диапазонам ячеек
+    # Проходим по указанному диапазону ячеек
+    for row in ws[cell_range]:
+        for cell in row:
+            cell.font = Font(name='Calibri', size=11)  # Устанавливаем шрифт для каждой ячейки
+    wb.save(file_path)
+
+
 def refactoring_file(name_file):
     if not is_refactoring(name_file):
-        values = {
-            'main': get_cell_value(name_file, 'B3'),
-            'y_axis': get_cell_value(name_file, 'B25'),
-            'z_axis': get_cell_value(name_file, 'B47')
-        }
-
+        value = get_cell_value(name_file, 'B3')
+        y_ = get_cell_value(name_file, 'B25')
+        z_ = get_cell_value(name_file, 'B47')
+        print(value, y_, z_)
         clean_excel(name_file, name_file)
-
-        # Перемещение данных
-        ranges_to_move = [
-            ("B11:K17", "L4"),
-            ("B18:K24", "U4"),
-            ("A25:K32", "A11"),
-            ("B33:K39", "L12"),
-            ("B40:K46", "U12"),
-            ("A47:K54", "A19"),
-            ("B55:K61", "L20"),
-            ("B62:K68", "U20")
-        ]
-
-        for src, dest in ranges_to_move:
-            cut_and_paste_excel(name_file, src, dest)
-
-        # Очистка строк
-        rows_to_clear = [11, 19]
-        for row in rows_to_clear:
-            clear_row(name_file, "Sheet1", row)
-
-        # Очистка диапазона и удаление строки
+        # Получить длину
+        cut_and_paste_excel(name_file, "B11:K17", "L4")
+        cut_and_paste_excel(name_file, "B18:K24", "V4")
+        clear_row(name_file, "Sheet1", 11)  # Очистит строку 11
+        cut_and_paste_excel(name_file, "A25:K32", "A11")
+        cut_and_paste_excel(name_file, "B33:K39", "L12")
+        cut_and_paste_excel(name_file, "B40:K46", "V12")
+        clear_row(name_file, "Sheet1", 19)  # Очистит строку 11
+        cut_and_paste_excel(name_file, "A47:K54", "A19")
+        cut_and_paste_excel(name_file, "B55:K61", "L20")
+        cut_and_paste_excel(name_file, "B62:K68", "V20")
         clear_cells_in_range(name_file, 'Sheet1', 'A27:AA100')
-        delete_row(name_file, 'Sheet1', 2)
+        delete_row(name_file, 'Sheet1', 2)  # Удаляет вторую строку на листе 'Sheet1'
+        merge_cells(name_file, 'A1:AE1',
+                    'Значения виброскоростей, мкм/с в 1/3 октавной полосе со среднегеометрической частотой, Гц')
+        # if value == 'Ось Y':
+        # merge_cells(name_file, 'A2:AD2', 'Ось Y')
+        # merge_cells(name_file, 'A10:AD10', 'Ось Z')
+        # else:
+        merge_cells(name_file, 'A2:AE2', value)
+        merge_cells(name_file, 'A10:AE10', y_)
+        merge_cells(name_file, 'A18:AE18', z_)
 
-        # Объединение ячеек с заголовками
-        merge_cells(
-            name_file, 'A1:AD1',
-            'Значения виброскоростей, мкм/с в 1/3 октавной полосе со среднегеометрической частотой, Гц'
-        )
-        merge_cells(name_file, 'A2:AD2', values['main'])
-        merge_cells(name_file, 'A10:AD10', values['y_axis'])
-        merge_cells(name_file, 'A18:AD18', values['z_axis'])
+        change_cell_format(name_file, ['A4:AE9', 'A12:AE17', 'A20:AE25'])
+        font(name_file, 'A1:AE25')
     else:
         print(f'Файл: "{name_file}" уже изменен!')
 
 
 def main():
-    dir_files = r'C:\Users\Fad\Desktop\Новая папка'
-    files = os.listdir(dir_files)
-    count_files = len(files)
-    count = 0
+    path_dir = r'C:\Users\Fad\PycharmProjects\EXEL_REFACTORING\Новая папка (2)'
+    files = os.listdir(path_dir)
+    count_file = len(files)
+    count_step = 0
     for i in files:
-        count += 1
-        print(f'{count} из {count_files}')
-        refactoring_file(dir_files + '/' + i)
-    print('--------------\nГотово!\n--------------')
+        count_step += 1
+        print(str(count_step) + ' из ' + str(count_file))
+        refactoring_file(path_dir + '/' + i)
+
+    print('\nГотово')
 
 
-if __name__ == "__main__":
-    main()
+main()
